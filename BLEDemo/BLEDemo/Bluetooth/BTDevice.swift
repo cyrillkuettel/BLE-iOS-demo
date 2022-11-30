@@ -71,6 +71,7 @@ class BTDevice: NSObject {
     }
     
     func connect() {
+        print("starting to connect")
         manager.connect(peripheral, options: nil)
     }
     
@@ -83,7 +84,7 @@ extension BTDevice {
     // these are called from BTManager, do not call directly
     
     func connectedCallback() {
-        peripheral.discoverServices([BTUUIDs.blinkService, BTUUIDs.infoService])
+        peripheral.discoverServices(nil)
         delegate?.deviceConnected()
     }
     
@@ -103,13 +104,9 @@ extension BTDevice: CBPeripheralDelegate {
         print("Device: discovered services")
         peripheral.services?.forEach {
             print("  \($0)")
-            if $0.uuid == BTUUIDs.infoService {
-                peripheral.discoverCharacteristics([BTUUIDs.infoSerial], for: $0)
-            } else if $0.uuid == BTUUIDs.blinkService {
-                peripheral.discoverCharacteristics([BTUUIDs.blinkOn,BTUUIDs.blinkSpeed], for: $0)
-            } else {
-                peripheral.discoverCharacteristics(nil, for: $0)
-            }
+
+           peripheral.discoverCharacteristics(nil, for: $0)
+            
             
         }
         print()
@@ -119,17 +116,7 @@ extension BTDevice: CBPeripheralDelegate {
         print("Device: discovered characteristics")
         service.characteristics?.forEach {
             print("   \($0)")
-            
-            if $0.uuid == BTUUIDs.blinkOn {
-                self.blinkChar = $0
-                peripheral.readValue(for: $0)
-                peripheral.setNotifyValue(true, for: $0)
-            } else if $0.uuid == BTUUIDs.blinkSpeed {
-                self.speedChar = $0
-                peripheral.readValue(for: $0)
-            } else if $0.uuid == BTUUIDs.infoSerial {
-                peripheral.readValue(for: $0)
-            }
+
         }
         print()
         
@@ -147,7 +134,7 @@ extension BTDevice: CBPeripheralDelegate {
             _speed = Int(s)
             delegate?.deviceSpeedChanged(value: _speed)
         }
-        if characteristic.uuid == BTUUIDs.infoSerial, let d = characteristic.value {
+        if let d = characteristic.value {
             serial = String(data: d, encoding: .utf8)
             if let serial = serial {
                 delegate?.deviceSerialChanged(value: serial)
